@@ -1,38 +1,53 @@
-name: Aperçu Flask avec ngrok
-
-on:
-  workflow_dispatch:
+name: Docker + ngrok + Tests en temps réel
+on: 
+  push:
+    branches: [ main, master ]
 
 jobs:
-  preview:
+  deploy-and-test:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Cloner le dépôt
+    - name: Checkout code
       uses: actions/checkout@v3
-
-    - name: Installer Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-
-    - name: Installer les dépendances Python
-      run: pip install flask pyngrok
-
-    - name: Créer fichier ngrok.yml avec token
+        
+    - name: Build Docker image
+      run: docker build -t flask-app .
+        
+    - name: Deploy, test et maintenir actif
       run: |
-        mkdir -p ~/.ngrok2
-        echo "authtoken: ${{ secrets.NGROK_AUTH_TOKEN }}" > ~/.ngrok2/ngrok.yml
-
-    - name: Lancer Flask et ngrok
-      run: |
-        echo "
-from pyngrok import ngrok
-import __init__ as appfile
-
-url = ngrok.connect(5000)
-print('🔗 Votre lien temporaire :', url)
-
-appfile.app.run(port=5000)
-        " > launch.py
-        python launch.py
+        curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt update && sudo apt install ngrok
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
+        docker run -d -p 5000:5000 --name flask-container flask-app
+        sleep 8
+        ngrok http 5000 --log=stdout > /tmp/ngrok.log 2>&1 &
+        sleep 20
+        NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o '"public_url":"[^"]*https[^"]*' | cut -d'"' -f4 | head -1)
+        if [ -n "$NGROK_URL" ]; then
+          echo "Application accessible sur : $NGROK_URL"
+          echo "=== TESTS AUTOMATIQUES ==="
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/")
+          if [ "$status" = "200" ]; then echo "/ → $status OK"; else echo "/ → $status ÉCHEC"; fi
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/exercices/")
+          if [ "$status" = "200" ]; then echo "/exercices/ → $status OK"; else echo "/exercices/ → $status ÉCHEC"; fi
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/contact/")
+          if [ "$status" = "200" ]; then echo "/contact/ → $status OK"; else echo "/contact/ → $status ÉCHEC"; fi
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/calcul_carre/5")
+          if [ "$status" = "200" ]; then echo "/calcul_carre/5 → $status OK"; else echo "/calcul_carre/5 → $status ÉCHEC"; fi
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/somme/10/15")
+          if [ "$status" = "200" ]; then echo "/somme/10/15 → $status OK"; else echo "/somme/10/15 → $status ÉCHEC"; fi
+          echo "=== TESTS TERMINÉS ==="
+          echo "URL disponible pendant 120 secondes pour tests manuels :"
+          echo "$NGROK_URL"
+          for i in {120..1}; do
+            echo "Reste $i secondes... URL: $NGROK_URL"
+            sleep 1
+          done
+          echo "Preview terminé"
+        else
+          echo "Pas d'URL trouvée"
+          cat /tmp/ngrok.log
+          exit 1
+        fi
