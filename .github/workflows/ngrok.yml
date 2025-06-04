@@ -1,14 +1,14 @@
-name: Flask + Ngrok Preview
+name: Aperçu Flask avec ngrok
 
 on:
-  workflow_dispatch:  # Lance manuellement l'action
+  workflow_dispatch:  # Tu pourras lancer manuellement cette action
 
 jobs:
   preview:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout du code
+    - name: Cloner le dépôt
       uses: actions/checkout@v3
 
     - name: Installer Python
@@ -18,9 +18,17 @@ jobs:
 
     - name: Installer les dépendances
       run: |
-        pip install -r requirements.txt
+        pip install flask pyngrok
 
-    - name: Lancer Flask avec ngrok
+    - name: Lancer Flask + ngrok
       run: |
-        echo "from pyngrok import ngrok; import __init__ as appfile; ngrok.set_auth_token(''); url = ngrok.connect(5000); print('🔗 Votre lien temporaire :', url); appfile.app.run(port=5000)" > launch.py
-        python launch.py
+        echo "🔧 Lancement du serveur Flask avec ngrok..."
+        python __init__.py &
+        sleep 5
+        python -c "
+from pyngrok import ngrok
+url = ngrok.connect(5000)
+print('🌐 URL ngrok :', url)
+import time
+time.sleep(120)
+"
