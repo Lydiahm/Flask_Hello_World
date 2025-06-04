@@ -1,16 +1,25 @@
-name: Docker + ngrok Preview
+name: Docker + ngrok + Tests
 on: 
   push:
     branches: [ main, master ]
 
 jobs:
-  deploy-preview:
+  deploy-and-test:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
       
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install test dependencies
+      run: |
+        pip install pytest requests
+        
     - name: Build Docker image
       run: |
         docker build -t flask-app .
@@ -30,13 +39,31 @@ jobs:
         sleep 5
         
         # Lancer ngrok
-        ngrok http 5000 --log=stdout &
-        sleep 10
+        ngrok http 5000 --log=stdout > /tmp/ngrok.log 2>&1 &
+        sleep 15
         
         # Récupérer l'URL
         NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o '"public_url":"[^"]*https[^"]*' | cut -d'"' -f4)
-        echo "🌐 Votre application est accessible sur : $NGROK_URL"
-        echo "⏰ URL disponible pendant 120 secondes..."
         
-        sleep 120
+        if [ -z "$NGROK_URL" ]; then
+          echo "❌ Impossible de récupérer l'URL ngrok"
+          cat /tmp/ngrok.log
+          exit 1
+        fi
+        
+        echo "🌐 Application accessible sur : $NGROK_URL"
+        echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
+        
+    - name: Run tests
+      env:
+        NGROK_URL: ${{ env.NGROK_URL }}
+      run: |
+        echo "🧪 Lancement des tests sur : $NGROK_URL"
+        pytest test_app.py -v --tb=short
+        
+    - name: Keep alive for manual testing
+      run: |
+        echo "⏰ URL disponible pendant 90 secondes pour tests manuels..."
+        echo "🌐 Testez votre app sur : ${{ env.NGROK_URL }}"
+        sleep 90
         echo "⏹️ Preview terminé"
