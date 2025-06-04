@@ -22,21 +22,21 @@ jobs:
         echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
         sudo apt update && sudo apt install ngrok
         
-        # Lancer l'app Flask en arrière-plan
+        # Configurer le token
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
+        
+        # Lancer l'app Flask
         docker run -d -p 5000:5000 --name flask-container flask-app
+        sleep 5
         
-        # Lancer ngrok pour exposer le port 5000
+        # Lancer ngrok
         ngrok http 5000 --log=stdout &
-        
-        # Attendre que ngrok démarre
         sleep 10
         
-        # Récupérer l'URL publique
-        NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o '"public_url":"[^"]*' | grep https | cut -d'"' -f4)
+        # Récupérer l'URL
+        NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o '"public_url":"[^"]*https[^"]*' | cut -d'"' -f4)
         echo "🌐 Votre application est accessible sur : $NGROK_URL"
         echo "⏰ URL disponible pendant 120 secondes..."
         
-        # Garder actif pendant 120 secondes
         sleep 120
-        
         echo "⏹️ Preview terminé"
