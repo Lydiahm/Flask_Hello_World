@@ -12,7 +12,7 @@ def hello_world():
 @app.route('/exercices/')
 def exercices():
     return render_template('exercices.html')
-#comment tu run actions
+# comment tu run actions
                                                                                                                
 if __name__ == "__main__":
   app.run(debug=True)
