@@ -1,7 +1,7 @@
 name: Aperçu Flask avec ngrok
 
 on:
-  workflow_dispatch:  # Tu peux lancer manuellement ce workflow
+  workflow_dispatch:
 
 jobs:
   preview:
@@ -16,30 +16,23 @@ jobs:
       with:
         python-version: 3.11
 
-    - name: Installer les dépendances
+    - name: Installer les dépendances Python
+      run: pip install flask pyngrok
+
+    - name: Créer fichier ngrok.yml avec token
       run: |
-        pip install flask pyngrok
+        mkdir -p ~/.ngrok2
+        echo "authtoken: ${{ secrets.NGROK_AUTH_TOKEN }}" > ~/.ngrok2/ngrok.yml
 
-    - name: Lancer Flask + ngrok
-      env:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+    - name: Lancer Flask et ngrok
       run: |
-        echo "🔧 Lancement du serveur Flask avec ngrok..."
+        echo "
+from pyngrok import ngrok
+import __init__ as appfile
 
-        # Lancer Flask en arrière-plan
-        nohup python __init__.py > flask.log 2>&1 &
-
-        sleep 5  # Attente pour s'assurer que Flask est lancé
-
-        # Générer le script de tunnel avec ngrok
-        echo "from pyngrok import ngrok
-ngrok.set_auth_token('${NGROK_AUTH_TOKEN}')
 url = ngrok.connect(5000)
 print('🔗 Votre lien temporaire :', url)
-import time
-time.sleep(120)" > launch.py
 
-        # Lancer le tunnel et attendre 2 minutes
+appfile.app.run(port=5000)
+        " > launch.py
         python launch.py
-
-
