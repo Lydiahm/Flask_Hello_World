@@ -13,6 +13,10 @@ def hello_world():
 def exercices():
     return render_template('exercices.html')
 # comment tu run actions
+
+@app.route("/contact/")
+def MaPremiereAPI():
+    return "<h2>Ma page de contact</h2>"
                                                                                                                
 if __name__ == "__main__":
   app.run(debug=True)
