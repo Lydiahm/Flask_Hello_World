@@ -1,7 +1,7 @@
 name: Aperçu Flask avec ngrok
 
 on:
-  workflow_dispatch:  # Tu pourras lancer manuellement cette action
+  workflow_dispatch:
 
 jobs:
   preview:
@@ -23,12 +23,11 @@ jobs:
     - name: Lancer Flask + ngrok
       run: |
         echo "🔧 Lancement du serveur Flask avec ngrok..."
-        python __init__.py &
+        nohup python __init__.py > flask.log 2>&1 &
         sleep 5
-        python -c "
-from pyngrok import ngrok
+        echo "from pyngrok import ngrok
 url = ngrok.connect(5000)
 print('🌐 URL ngrok :', url)
 import time
-time.sleep(120)
-"
+time.sleep(120)" > launch_ngrok.py
+        python launch_ngrok.py
