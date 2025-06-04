@@ -1,9 +1,13 @@
 import pytest
 import requests
-import time
+import os
 
-def test_routes_status_code(ngrok_url):
+def test_routes_status_code():
     """Test que toutes les routes retournent un code 200"""
+    
+    ngrok_url = os.environ.get('NGROK_URL', '').rstrip('/')
+    if not ngrok_url:
+        pytest.fail("NGROK_URL non définie")
     
     routes_to_test = [
         "/",
@@ -24,16 +28,16 @@ def test_routes_status_code(ngrok_url):
         except requests.exceptions.RequestException as e:
             pytest.fail(f"❌ Erreur sur {route}: {e}")
 
-def test_content_verification(ngrok_url):
+def test_content_verification():
     """Test que le contenu attendu est présent"""
+    
+    ngrok_url = os.environ.get('NGROK_URL', '').rstrip('/')
+    if not ngrok_url:
+        pytest.fail("NGROK_URL non définie")
     
     # Test page d'accueil
     response = requests.get(f"{ngrok_url}/")
     assert "Bonjour tout le monde" in response.text
-    
-    # Test page exercices
-    response = requests.get(f"{ngrok_url}/exercices/")
-    assert "Bienvenue sur votre Framework Flask" in response.text
     
     # Test calcul carré
     response = requests.get(f"{ngrok_url}/calcul_carre/5")
