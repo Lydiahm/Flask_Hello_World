@@ -22,7 +22,9 @@ def MaPremiereAPI():
 @app.route('/somme/<int:valeur1>/<int:valeur2>')
 def somme(valeur1, valeur2):
     resultat = valeur1 + valeur2
-    return f"<h2>La somme de {valeur1} et {valeur2} est : {resultat}</h2>"
+    parite = "pair" if resultat % 2 == 0 else "impair"
+    return f"<h2>La somme de {valeur1} et {valeur2} est : {resultat}</h2><p>C'est un nombre {parite}.</p>"
+
 
 
                                                                                                                
