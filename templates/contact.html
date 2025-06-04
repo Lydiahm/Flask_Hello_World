@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - Flask</title>
+    <link rel="stylesheet" href="../static/css/contact.css">
+</head>
+<body>
+    <header>
+        <canvas id="backgroundCanvas"></canvas>
+        <h1>Contactez-nous</h1>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div class="contact-form">
+                <h2>Envoyez-nous un message</h2>
+                <form action="/contact/" method="POST">
+                    <div class="form-group">
+                        <label for="nom">Nom complet :</label>
+                        <input type="text" id="nom" name="nom" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email :</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="telephone">Téléphone :</label>
+                        <input type="tel" id="telephone" name="telephone">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sujet">Sujet :</label>
+                        <select id="sujet" name="sujet" required>
+                            <option value="">Choisissez un sujet</option>
+                            <option value="information">Demande d'information</option>
+                            <option value="support">Support technique</option>
+                            <option value="collaboration">Collaboration</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="message">Message :</label>
+                        <textarea id="message" name="message" rows="6" required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">Envoyer le message</button>
+                </form>
+            </div>
+            
+            <div class="contact-info">
+                <h3>Nos coordonnées</h3>
+                <div class="info-item">
+                    <strong>📧 Email :</strong>
+                    <p>contact@monsite.com</p>
+                </div>
+                
+                <div class="info-item">
+                    <strong>📞 Téléphone :</strong>
+                    <p>+33 1 23 45 67 89</p>
+                </div>
+                
+                <div class="info-item">
+                    <strong>📍 Adresse :</strong>
+                    <p>123 Rue de la Innovation<br>75001 Paris, France</p>
+                </div>
+                
+                <div class="info-item">
+                    <strong>🕒 Horaires :</strong>
+                    <p>Lundi - Vendredi : 9h00 - 18h00<br>
+                    Weekend : Sur rendez-vous</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Animation Canvas
+        const canvas = document.getElementById('backgroundCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = 300;
+        
+        const particles = [];
+        
+        for(let i = 0; i < 50; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+                size: Math.random() * 3 + 1
+            });
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach(particle => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                
+                if(particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+                if(particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+                
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fill();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+        });
+    </script>
+</body>
+</html>
