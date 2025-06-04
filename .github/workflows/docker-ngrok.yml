@@ -1,4 +1,4 @@
-name: Docker + ngrok + Tests en temps réel
+name: Docker + ngrok + Tests pytest
 on: 
   push:
     branches: [ main, master ]
@@ -10,12 +10,21 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install pytest dependencies
+      run: |
+        pip install pytest==7.4.0 requests==2.31.0
         
     - name: Build Docker image
       run: |
         docker build -t flask-app .
         
-    - name: Deploy, test et maintenir actif
+    - name: Deploy et récupérer URL
       run: |
         # Installer ngrok
         curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
@@ -38,73 +47,28 @@ jobs:
         
         if [ -n "$NGROK_URL" ]; then
           echo "🌐 Application accessible sur : $NGROK_URL"
-          
-          # TESTS IMMÉDIATEMENT pendant que c'est actif
-          echo ""
-          echo "🧪 === TESTS AUTOMATIQUES ==="
-          
-          # Test 1: Page d'accueil
-          echo "🔍 Test 1: Page d'accueil (/) :"
-          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/")
-          if [ "$status" = "200" ]; then
-            echo "✅ / → $status OK"
-          else
-            echo "❌ / → $status ÉCHEC"
-          fi
-          
-          # Test 2: Page exercices
-          echo "🔍 Test 2: Page exercices (/exercices/) :"
-          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/exercices/")
-          if [ "$status" = "200" ]; then
-            echo "✅ /exercices/ → $status OK"
-          else
-            echo "❌ /exercices/ → $status ÉCHEC"
-          fi
-          
-          # Test 3: Page contact
-          echo "🔍 Test 3: Page contact (/contact/) :"
-          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/contact/")
-          if [ "$status" = "200" ]; then
-            echo "✅ /contact/ → $status OK"
-          else
-            echo "❌ /contact/ → $status ÉCHEC"
-          fi
-          
-          # Test 4: Calcul carré
-          echo "🔍 Test 4: Calcul carré (/calcul_carre/5) :"
-          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/calcul_carre/5")
-          if [ "$status" = "200" ]; then
-            echo "✅ /calcul_carre/5 → $status OK"
-          else
-            echo "❌ /calcul_carre/5 → $status ÉCHEC"
-          fi
-          
-          # Test 5: Somme
-          echo "🔍 Test 5: Somme (/somme/10/15) :"
-          status=$(curl -s -o /dev/null -w "%{http_code}" "$NGROK_URL/somme/10/15")
-          if [ "$status" = "200" ]; then
-            echo "✅ /somme/10/15 → $status OK"
-          else
-            echo "❌ /somme/10/15 → $status ÉCHEC"
-          fi
-          
-          echo ""
-          echo "🎉 === TESTS TERMINÉS ==="
-          echo ""
-          echo "⏰ URL disponible pendant 120 secondes pour tests manuels :"
-          echo "🌐 $NGROK_URL"
-          echo ""
-          
-          # Maintenir actif 2 minutes pour tests manuels
-          for i in {120..1}; do
-            echo "⏱️  Reste $i secondes... URL: $NGROK_URL"
-            sleep 1
-          done
-          
-          echo "⏹️ Preview terminé"
-          
+          echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
         else
           echo "❌ Pas d'URL trouvée"
           cat /tmp/ngrok.log
           exit 1
         fi
+        
+    - name: Run pytest tests
+      env:
+        NGROK_URL: ${{ env.NGROK_URL }}
+      run: |
+        echo "🧪 === TESTS PYTEST ==="
+        echo "URL testée : $NGROK_URL"
+        pytest test_app.py -v --tb=short -s
+        
+    - name: Keep alive
+      run: |
+        echo ""
+        echo "URL disponible pendant 120 secondes pour tests manuels : $NGROK_URL"
+        sleep 30
+        echo "URL disponible pendant 90 secondes pour tests manuels : $NGROK_URL"
+        sleep 30
+        echo "URL disponible pendant 60 secondes pour tests manuels : $NGROK_URL"
+        sleep 60
+        echo "⏹️ Preview terminé"
